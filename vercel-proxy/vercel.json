@@ -1,0 +1,18 @@
+{
+  "name": "photo-proxy",
+  "version": 2,
+  "routes": [
+    { "src": "/(.*)", "dest": "https://cloud1-1g9jxydd82189dee-1417100008.ap-shanghai.app.tcloudbase.com/admin/$1" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "content-type, authorization" },
+        { "key": "Access-Control-Max-Age", "value": "86400" }
+      ]
+    }
+  ]
+}
