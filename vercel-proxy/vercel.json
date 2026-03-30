@@ -1,17 +1,42 @@
 {
-  "name": "photo-proxy",
+  "name": "photo-admin-panel",
   "version": 2,
-  "routes": [
-    { "src": "/(.*)", "dest": "https://cloud1-1g9jxydd82189dee-1417100008.ap-shanghai.app.tcloudbase.com/admin/$1" }
+  "builds": [
+    { "src": "admin-panel.html", "use": "@vercel/static" },
+    { "src": "api/**/*.js", "use": "@vercel/node" }
   ],
+  "routes": [
+    {
+      "src": "/api/proxy",
+      "dest": "/api/proxy.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
+        "Access-Control-Allow-Headers": "content-type"
+      }
+    },
+    {
+      "src": "/api/status",
+      "dest": "/api/proxy.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/admin-panel.html",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    }
+  ],
+  "env": {
+    "WECHAT_CLOUD_URL": "@wechat-cloud-url"
+  },
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "content-type, authorization" },
-        { "key": "Access-Control-Max-Age", "value": "86400" }
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" }
       ]
     }
   ]
