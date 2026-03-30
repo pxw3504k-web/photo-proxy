@@ -1,7 +1,6 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/proxy.js" },
     { "source": "/(.*)", "destination": "/admin-panel.html" }
   ],
   "headers": [
