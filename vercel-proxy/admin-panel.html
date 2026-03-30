@@ -315,35 +315,31 @@
 
   <script>
     // ─── 配置 ────────────────────────────────────────────────
-    // Vercel 部署后，API 地址由服务端环境变量配置，前端无需设置
-    // 本地开发时可通过 URL 参数覆盖
+    // 是否为 Vercel 部署模式
+    const IS_VERCEL = window.location.hostname.includes('vercel.app');
 
-    // Vercel 部署地址（构建时会替换）
-    const VERCE_API_URL = '{{VERCEL_API_URL}}';
+    // CORS 代理地址
+    const CORS_PROXY = 'https://corsproxy.io/?';
 
-    // 从 URL 参数读取（兼容旧方式 ?api=xxx）
+    // 从 URL 参数读取配置
     const urlParams = new URLSearchParams(window.location.search);
-    const urlApiParam = urlParams.get('api') || '';
+    const URL_API_PARAM = urlParams.get('api') || '';
 
-    // 最终使用的 API 地址：URL 参数 > Vercel 环境变量
-    let BASE_URL = urlApiParam || (VERCE_API_URL !== '{{VERCEL_API_URL}}' ? VERCE_API_URL : '');
-    let USE_VERCEL_PROXY = !!BASE_URL && !urlApiParam;
-
-    // API 请求地址（统一通过 Vercel 函数代理）
+    // API 请求地址
     function getApiUrl(path) {
-      if (USE_VERCEL_PROXY) {
-        // Vercel 部署：直接请求当前域名
+      if (IS_VERCEL && !URL_API_PARAM) {
+        // Vercel 部署模式
         return '/api/proxy';
       } else {
-        // 旧方式：使用 URL 中指定的 API 地址
-        return BASE_URL + '/' + path;
+        // 旧方式
+        return URL_API_PARAM + '/' + path;
       }
     }
 
-    // 调用云函数（通过代理）
+    // 调用云函数
     async function callCloudFunction(name, data) {
-      if (USE_VERCEL_PROXY) {
-        // Vercel 部署方式：POST /api/proxy
+      if (IS_VERCEL && !URL_API_PARAM) {
+        // Vercel 部署方式
         const res = await fetch('/api/proxy', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -351,8 +347,8 @@
         });
         return res.json();
       } else {
-        // 旧方式：直接请求云接入地址
-        const proxyUrl = BASE_URL + '/' + name;
+        // 旧方式
+        const proxyUrl = URL_API_PARAM + '/' + name;
         const res = await fetch(proxyUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
@@ -362,17 +358,12 @@
       }
     }
 
-    // CORS 代理地址（旧方式使用）
-    const CORS_PROXY = 'https://corsproxy.io/?';
-
     // 图片 URL 处理
     function getImageUrl(url) {
       if (!url) return '';
-      // 如果已经是完整 HTTP URL 且不包含敏感签名参数，直接返回
       if (url.startsWith('http') && !url.includes('sign=')) {
         return url;
       }
-      // 其他情况通过 CORS 代理访问
       return CORS_PROXY + encodeURIComponent(url);
     }
 
@@ -393,16 +384,16 @@
         return;
       }
 
-      // Vercel 部署：自动检测并进入主界面
-      if (USE_VERCEL_PROXY) {
+      // Vercel 部署模式：自动进入主界面
+      if (IS_VERCEL && !URL_API_PARAM) {
         startUsing();
         return;
       }
 
       // 如果 URL 中有 api 参数，使用旧方式
-      if (BASE_URL) {
+      if (URL_API_PARAM) {
         const input = document.getElementById('apiUrlInput');
-        if (input) input.value = BASE_URL;
+        if (input) input.value = URL_API_PARAM;
         startUsing();
         return;
       }
@@ -475,7 +466,7 @@
           document.getElementById('step5').style.display = 'block';
 
           // 保存基础 URL
-          BASE_URL = baseUrl;
+          URL_API_PARAM = baseUrl;
           // 同时更新输入框显示基础 URL
           input.value = baseUrl;
 
@@ -499,10 +490,10 @@
     // ─── 开始使用 ────────────────────────────────────────────
     function startUsing() {
       const input = document.getElementById('apiUrlInput');
-      const apiUrl = input?.value?.trim() || BASE_URL;
+      const apiUrl = input?.value?.trim() || URL_API_PARAM;
 
       // Vercel 部署模式：无需 URL，直接进入
-      if (USE_VERCEL_PROXY) {
+      if (IS_VERCEL) {
         document.getElementById('setupGuide').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
 
@@ -534,9 +525,9 @@
         return;
       }
 
-      // BASE_URL 格式: https://xxx.tcloudbaseapp.com/admin
+      // URL_API_PARAM 格式: https://xxx.tcloudbaseapp.com/admin
       const baseUrl = apiUrl.replace(/\/$/, '');
-      BASE_URL = baseUrl;
+      URL_API_PARAM = baseUrl;
 
       // 隐藏向导，显示主界面
       document.getElementById('setupGuide').style.display = 'none';
@@ -806,7 +797,7 @@
 
         let processedImageUrl = '';
 
-        if (USE_VERCEL_PROXY) {
+        if (IS_VERCEL) {
           // Vercel 部署模式：分两步走
           // 1.1 先上传照片到微信云存储
           const uploadRes = await fetch('/api/proxy', {
@@ -863,7 +854,7 @@
         if (selectedZip) {
           const zipBase64 = await fileToBase64(selectedZip);
           // Vercel 模式限制 4.5MB，旧模式限制 190KB
-          const maxZipSize = USE_VERCEL_PROXY ? 4500000 : 190000;
+          const maxZipSize = IS_VERCEL ? 4500000 : 190000;
 
           if (zipBase64.length > maxZipSize) {
             console.warn('ZIP 过大，跳过上传');
@@ -872,7 +863,7 @@
             showToast('正在上传 ZIP...', 'info');
             console.log('ZIP base64 长度:', zipBase64.length);
 
-            if (USE_VERCEL_PROXY) {
+            if (IS_VERCEL) {
               const zipUploadRes = await fetch('/api/proxy', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
