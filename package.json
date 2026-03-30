@@ -1,0 +1,8 @@
+{
+  "name": "photo-admin-panel",
+  "version": "1.0.0",
+  "description": "证件照管理后台 Vercel 代理服务",
+  "engines": {
+    "node": "18.x"
+  }
+}
